@@ -1,17 +1,19 @@
 pragma solidity >=0.4.22 <0.6.0;
 
 contract owned {
-    address public owner;
+    address public owner; //Crea una variable publica tipo 'address'
 
     constructor() public {
-        owner = msg.sender;
+        owner = msg.sender; //la variable owner obtiene el valor 'address' de quien despliega el contrato
     }
 
+//Esta funcion define al master.
     modifier onlyOwner {
         require(msg.sender == owner);
         _;
     }
 
+//Esta funcion es usada para transferir la propiedad de tu contrato.
     function transferOwnership(address newOwner) onlyOwner public {
         owner = newOwner;
     }
@@ -19,6 +21,7 @@ contract owned {
 
 interface tokenRecipient { function receiveApproval(address _from, uint256 _value, address _token, bytes calldata _extraData) external; }
 
+//## En esta parte personalizamos nuestro Token. Cuando hagamos Deploy nos va a pedir definir estas variables
 contract TokenERC20 {
     // Public variables of the token
     string public name;
@@ -27,21 +30,22 @@ contract TokenERC20 {
     // 18 decimals is the strongly suggested default, avoid changing it
     uint256 public totalSupply;
 
-    // This creates an array with all balances
+
+    // Crea un Array con todos los balances.
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => uint256)) public allowance;
 
-    // This generates a public event on the blockchain that will notify clients
+    //Se ejecuta cada vez que alguien use la funcion Transfer.Se genera un evento publico en la Blockchain, para notificar a los clientes.
     event Transfer(address indexed from, address indexed to, uint256 value);
-    
-    // This generates a public event on the blockchain that will notify clients
+
+    //Se ejecuta cada vez que alguien use la funcion Approval.Se genera un evento publico en la Blockchain, para notificar a los clientes.
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
 
-    // This notifies clients about the amount burnt
+    //Se ejecuta cada vez que alguien use la funcion Burn. Lanza una notificacion de los Token quemados.
     event Burn(address indexed from, uint256 value);
 
     /**
-     * Constrctor function
+     * Contructor. Se ejecuta una sola vez. Al de desplegar el contrato.
      *
      * Initializes contract with initial supply tokens to the creator of the contract
      */
@@ -50,70 +54,74 @@ contract TokenERC20 {
         string memory tokenName,
         string memory tokenSymbol
     ) public {
-        totalSupply = initialSupply * 10 ** uint256(decimals);  // Update total supply with the decimal amount
-        balanceOf[msg.sender] = totalSupply;                    // Give the creator all initial tokens
-        name = tokenName;                                       // Set the name for display purposes
-        symbol = tokenSymbol;                                   // Set the symbol for display purposes
+        totalSupply = initialSupply * 10 ** uint256(decimals);  // Actualiza el total supply con la cantidad de decimales
+        balanceOf[msg.sender] = totalSupply;                    // Entrega al creador todos los token
+        name = tokenName;                                       // Establece el nombre del token, con el proposito de mostrarlo.
+        symbol = tokenSymbol;                                   // Establece el simbolo del token. Por lo general son 3 letras.
     }
 
     /**
-     * Internal transfer, only can be called by this contract
+     * Transferencia interna, solo puede ser convocada por este contrato.
      */
+
     function _transfer(address _from, address _to, uint _value) internal {
-        // Prevent transfer to 0x0 address. Use burn() instead
+        // Evitar la transferencia a la dirección 0x0. Use burn() en su lugar
         require(_to != address(0x0));
-        // Check if the sender has enough
+        //Comprueba si el enviador tiene fondos suficientes
         require(balanceOf[_from] >= _value);
-        // Check for overflows
+        // Comprobacion para overflows
         require(balanceOf[_to] + _value > balanceOf[_to]);
-        // Save this for an assertion in the future
+        // Guarda esto para una afirmación en el futuro
         uint previousBalances = balanceOf[_from] + balanceOf[_to];
-        // Subtract from the sender
+        // Retira los fondos del enviador
         balanceOf[_from] -= _value;
-        // Add the same to the recipient
+        // Agrega los fondos a la direccion del receptor
         balanceOf[_to] += _value;
         emit Transfer(_from, _to, _value);
-        // Asserts are used to use static analysis to find bugs in your code. They should never fail
+        // Las afirmaciones se utilizan para utilizar el análisis estático para encontrar errores en su código. Nunca deben fallar
         assert(balanceOf[_from] + balanceOf[_to] == previousBalances);
     }
 
     /**
-     * Transfer tokens
+     * Transferir Token
      *
-     * Send `_value` tokens to `_to` from your account
+     * Enviar `_value` tokens a `_to` desde tu cuenta
      *
-     * @param _to The address of the recipient
-     * @param _value the amount to send
+     * El parametro _to es la direccion del receptor
+     * El parametro _value es la cantidad de tokens
      */
+
     function transfer(address _to, uint256 _value) public returns (bool success) {
         _transfer(msg.sender, _to, _value);
         return true;
     }
 
     /**
-     * Transfer tokens from other address
+     * Transferir token de otras direcciones
      *
-     * Send `_value` tokens to `_to` in behalf of `_from`
+     * Envia `_value` tokens a `_to` in behalf of `_from`
      *
-     * @param _from The address of the sender
-     * @param _to The address of the recipient
-     * @param _value the amount to send
+     * El parametro _from es la direccion de donde saldran los token
+     * El parametro _to es la direccion del receptor
+     * El parametro _value es la cantidad de tokens
      */
+
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
-        require(_value <= allowance[_from][msg.sender]);     // Check allowance
+        require(_value <= allowance[_from][msg.sender]);     // Comprueba lo asignado
         allowance[_from][msg.sender] -= _value;
         _transfer(_from, _to, _value);
         return true;
     }
 
     /**
-     * Set allowance for other address
+     * Establecer asignación para otra dirección
      *
-     * Allows `_spender` to spend no more than `_value` tokens in your behalf
+     * Permitir a `_spender` gastar no más que `_value` de mis tokens en su favor
      *
-     * @param _spender The address authorized to spend
-     * @param _value the max amount they can spend
+     * El parametro _spender es la direccion autorizada para gastar
+     * El parametro _value es la cantidad maxima que puede gastar
      */
+
     function approve(address _spender, uint256 _value) public
         returns (bool success) {
         allowance[msg.sender][_spender] = _value;
@@ -122,13 +130,13 @@ contract TokenERC20 {
     }
 
     /**
-     * Set allowance for other address and notify
+     * Establecer asignación para otra dirección y notificar
      *
-     * Allows `_spender` to spend no more than `_value` tokens in your behalf, and then ping the contract about it
+     * Permitir a `_spender` gastar no más de `_value` de mis tokens en su favor, y luego hacer ping al contrato al respecto
      *
-     * @param _spender The address authorized to spend
-     * @param _value the max amount they can spend
-     * @param _extraData some extra information to send to the approved contract
+     * El parametro _spender es la direccion autorizada para gastar
+     * El parametro _value es la cantidad maxima que puede gastar
+     * El parametro _extraData Alguna información extra para enviar al contrato aprobado.
      */
     function approveAndCall(address _spender, uint256 _value, bytes memory _extraData)
         public
@@ -141,34 +149,34 @@ contract TokenERC20 {
     }
 
     /**
-     * Destroy tokens
+     * Destruir tokens
      *
-     * Remove `_value` tokens from the system irreversibly
+     *Remueve `_value` tokens del sistema de manera irreversible
      *
-     * @param _value the amount of money to burn
+     * El parametro _value es la cantidad a destruir
      */
     function burn(uint256 _value) public returns (bool success) {
-        require(balanceOf[msg.sender] >= _value);   // Check if the sender has enough
-        balanceOf[msg.sender] -= _value;            // Subtract from the sender
-        totalSupply -= _value;                      // Updates totalSupply
+        require(balanceOf[msg.sender] >= _value);   // Revisa si el enviador tiene suficientes
+        balanceOf[msg.sender] -= _value;            // Resta los token del enviador
+        totalSupply -= _value;                      // Actualiza el total totalSupply
         emit Burn(msg.sender, _value);
         return true;
     }
 
     /**
-     * Destroy tokens from other account
+     * Destruir los token de otra direccion
      *
-     * Remove `_value` tokens from the system irreversibly on behalf of `_from`.
+     * Remover `_value` tokens del sistema de manera irreversible para la direccion `_from`.
      *
-     * @param _from the address of the sender
-     * @param _value the amount of money to burn
+     * El parametro _from es la direccion del sender
+     * El parametro _value es la cantidad de tokens a destruir
      */
     function burnFrom(address _from, uint256 _value) public returns (bool success) {
-        require(balanceOf[_from] >= _value);                // Check if the targeted balance is enough
-        require(_value <= allowance[_from][msg.sender]);    // Check allowance
-        balanceOf[_from] -= _value;                         // Subtract from the targeted balance
-        allowance[_from][msg.sender] -= _value;             // Subtract from the sender's allowance
-        totalSupply -= _value;                              // Update totalSupply
+        require(balanceOf[_from] >= _value);                // Revisa si la direccion objetivo tiene el balance suficiente
+        require(_value <= allowance[_from][msg.sender]);    // Comprueba lo asignado
+        balanceOf[_from] -= _value;                         // Resta los token de la direccion objetivo
+        allowance[_from][msg.sender] -= _value;             // Resta el valor asignado
+        totalSupply -= _value;                              // Actualiza el total supply
         emit Burn(_from, _value);
         return true;
     }
@@ -185,31 +193,31 @@ contract MyAdvancedToken is owned, TokenERC20 {
 
     mapping (address => bool) public frozenAccount;
 
-    /* This generates a public event on the blockchain that will notify clients */
+    /* Esto genera un evento público en la cadena de bloques que notificará a los clientes. */
     event FrozenFunds(address target, bool frozen);
 
-    /* Initializes contract with initial supply tokens to the creator of the contract */
+    /* Inicializa el contrato con los tokens de suministro iniciales al creador del contrato. */
     constructor(
         uint256 initialSupply,
         string memory tokenName,
         string memory tokenSymbol
     ) TokenERC20(initialSupply, tokenName, tokenSymbol) public {}
 
-    /* Internal transfer, only can be called by this contract */
+    /* Transferencia interna, solo puede ser convocada por este contrato. */
     function _transfer(address _from, address _to, uint _value) internal {
-        require (_to != address(0x0));                          // Prevent transfer to 0x0 address. Use burn() instead
-        require (balanceOf[_from] >= _value);                   // Check if the sender has enough
-        require (balanceOf[_to] + _value >= balanceOf[_to]);    // Check for overflows
-        require(!frozenAccount[_from]);                         // Check if sender is frozen
-        require(!frozenAccount[_to]);                           // Check if recipient is frozen
-        balanceOf[_from] -= _value;                             // Subtract from the sender
-        balanceOf[_to] += _value;                               // Add the same to the recipient
+        require (_to != address(0x0));                          // Evitar la transferencia a la dirección 0x0. Use burn() en su lugar
+        require (balanceOf[_from] >= _value);                   // Comprueba que el enviador tenga tokens suficientes
+        require (balanceOf[_to] + _value >= balanceOf[_to]);    // Comprobacion para overflows
+        require(!frozenAccount[_from]);                         // Comprueba si el enviador esta congelado
+        require(!frozenAccount[_to]);                           // Compruebasi el receptor esta congelado
+        balanceOf[_from] -= _value;                             // Resta los token al enviador
+        balanceOf[_to] += _value;                               // Añade los token al receptor
         emit Transfer(_from, _to, _value);
     }
 
-    /// @notice Create `mintedAmount` tokens and send it to `target`
-    /// @param target Address to receive the tokens
-    /// @param mintedAmount the amount of tokens it will receive
+    /// @notice Crear `mintedAmount` tokens y enviarlos al `target`
+    /// El parametro target es la direccion que recibira los token
+    /// El parametro mintedAmount es la cantidad de tokens que recibira
     function mintToken(address target, uint256 mintedAmount) onlyOwner public {
         balanceOf[target] += mintedAmount;
         totalSupply += mintedAmount;
@@ -217,36 +225,36 @@ contract MyAdvancedToken is owned, TokenERC20 {
         emit Transfer(address(this), target, mintedAmount);
     }
 
-    /// @notice `freeze? Prevent | Allow` `target` from sending & receiving tokens
-    /// @param target Address to be frozen
-    /// @param freeze either to freeze it or not
+    /// @notice `freeze? Previene | Permite a `target` enviar y recibir token
+    /// El parametro target es la direccion a congelar
+    /// El parametro freeze usado ya sea para congelar o no
+    /// solo puede ser ejecutada por el master
     function freezeAccount(address target, bool freeze) onlyOwner public {
         frozenAccount[target] = freeze;
         emit FrozenFunds(target, freeze);
     }
 
-    /// @notice Allow users to buy tokens for `newBuyPrice` eth and sell tokens for `newSellPrice` eth
-    /// @param newSellPrice Price the users can sell to the contract
-    /// @param newBuyPrice Price users can buy from the contract
+    /// @notice Permitir que los usuarios compren tokens por 'newBuyPrice` eth y vender tokens por 'newSellPrice` eth
+    /// El parametro newSellPrice Precio al que los usuarios pueden vender al contrato.
+    /// El parametro newBuyPrice Precio que los usuarios pueden comprar al contrato.
+
     function setPrices(uint256 newSellPrice, uint256 newBuyPrice) onlyOwner public {
         sellPrice = newSellPrice;
         buyPrice = newBuyPrice;
     }
 
-    /// @notice Buy tokens from contract by sending ether
+    /// @notice Compre fichas del contrato enviando éter.
     function buy() payable public {
-        uint amount = msg.value / buyPrice;                 // calculates the amount
-        _transfer(address(this), msg.sender, amount);       // makes the transfers
+        uint amount = msg.value / buyPrice;                 // Calcular el monto
+        _transfer(address(this), msg.sender, amount);       // Hacer la transferencia
     }
 
-    /// @notice Sell `amount` tokens to contract
-    /// @param amount amount of tokens to be sold
+    /// @notice venta de `amount` tokens para el contrato
+    /// El parametro amount es la cantidad de tokens vendidos
     function sell(uint256 amount) public {
         address myAddress = address(this);
-        require(myAddress.balance >= amount * sellPrice);   // checks if the contract has enough ether to buy
-        _transfer(msg.sender, address(this), amount);       // makes the transfers
-        msg.sender.transfer(amount * sellPrice);            // sends ether to the seller. It's important to do this last to avoid recursion attacks
+        require(myAddress.balance >= amount * sellPrice);   // Comprueba si el contrato tiene el suficiente ether para comprar
+        _transfer(msg.sender, address(this), amount);       // Hace la transferencia
+        msg.sender.transfer(amount * sellPrice);            // Envia ether al vendedor.Es importante hacer esto último para evitar ataques de recursión.
     }
 }
-
-
