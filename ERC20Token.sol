@@ -258,3 +258,4 @@ contract MyAdvancedToken is owned, TokenERC20 {
         msg.sender.transfer(amount * sellPrice);            // Envia ether al vendedor.Es importante hacer esto último para evitar ataques de recursión.
     }
 }
+/// ## https://bit2main.com/desarrollo-blockchain/   @angelb2m
